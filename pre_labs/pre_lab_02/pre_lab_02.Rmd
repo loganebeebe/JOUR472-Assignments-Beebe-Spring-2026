@@ -355,7 +355,7 @@ Now that you have seen how to use mutate, filtering and dates, give me three que
 
 **Answer**
 
-1.   Which departments at UMD have the most courses each year? Use filtering and grouping
+1.  Which departments at UMD have the most courses each year? Use filtering and grouping
 
 2.  How does campaign spending change by month? Use mutate and floor date
 
