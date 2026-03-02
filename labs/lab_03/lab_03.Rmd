@@ -83,27 +83,37 @@ Q3. You're interested in examining the vendors paid for capital projects at the 
 
 Look carefully at that list - what cleaning will it require to ensure that you have only one row per vendor and zip code? Provide at least three examples of vendor names that are similar and should be combined into one. Describe in words how you might clean that data so that any nearly identical vendors would look identical - what would you change and how?
 
-A3. Well the medical center is called the University of Maryland Medical Center and the St. John's medical center and it has a lot of different variations
+A3. Well the medical center is called the University of Maryland Medical Center and the St. John's medical center and it has a lot of different variations- I got 14.
 
 ```{r}
 umd_capital <- payments |>
   filter(
     str_detect(vendor_name, "UNIVERSITY OF MARYLAND") &
       str_detect(agency_name, "CAPITAL")
-    ) |>
-  group_by(vendor_name, vendor_zip)
+    )
+nrow(umd_capital)
 ```
 
 Q4: You want to understand how much state grant money went to stem cell research projects each fiscal year. Search the data to find grants that fit that description. Once you find which column(s) contain the information you want, your code should find just the grants for stem cell research in a single filter. Then calculate the total amount of money for each fiscal year. Write a sentence summarizing how stem cell research funding has changed over time.
 
-A4:
+A4: There was a big increase in funding in 2023, after decreasing into 2021 and rising in 2022.
 
 ```{r}
+stem_cell <- md_grants_loans |>
+  filter(str_detect(description, "STEM CELL")) |>
+  group_by(fiscal_year) |>
+  summarize(total_amount = sum(amount))
+  
+
 ```
 
 Q5: Using the Maryland grants and loan data, find records where the zip code is the one where the University of Maryland-College Park is located in and produce a list of grantees from that zip code, along with the total amount they received. Write a paragraph explaining how many grantees are there, what you would need to do to clean the results so that you had one record per grantee and which grantees are most interesting to you?
 
-A5:
+A5: I found 17 grantees. For cleaning, you should have more standardized naming since University of Maryland can be written a lot of different ways. I think that the one that stood out to me the most was the 3 million dollar amount with the University of Maryland grantee- especially since there are so many other UMD grantees on there just spelled differently, this one just stood out to me because it was vastly larger than all the others.
 
 ```{r}
+umd_zip <- md_grants_loans |>
+  filter(zip_code == "20742") |>
+  group_by(grantee) |>
+  summarize(total_amount = sum(amount))
 ```
