@@ -1,0 +1,114 @@
+---
+title: "lab_04"
+author: "Derek Willis"
+date: "2023-10-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## About this lab
+
+To complete this lab, you need to: \* run existing code as directed (look for **Task**). \* modify existing code as directed (look for **Task**). \* write code in empty codeblocks provided to answer questions included (look for **Q**). \* write out the answer in the form of a complete sentence in the space given (look for **A**).
+
+When you are finished, commit changes and push to your personal GitHub repo, then submit the URL to this document on ELMS.
+
+## Load libraries and establish settings
+
+You'll need to load three packages for this: the tidyverse, lubridate and janitor.
+
+**Task** load these three packages.
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# load your packages
+library(tidyverse)
+library(lubridate)
+library(janitor)
+```
+
+For this lab, we want to investigate spending by Maryland state and local candidates during the 2022 election. For example, we could ask how much money have candidates and committees spent on advertising on Facebook? Which vendors received the most money for media expenses? We have the data, but it's messy - names of payees are spelled differently and capitalized differently - and we need to clean it up. We'll use a combination of RStudio and OpenRefine to do that.
+
+The basic process here is to start in RStudio, export data so that we can use OpenRefine to clean it up, and then bring it back into RStudio to finish our analysis.
+
+## Load Data
+
+You'll need to load one data set, a CSV file of Maryland campaign expenditures located in the data folder called "maryland_expenses.csv"
+
+**Task** Create a codeblock below, then read the data in and assign it to an appropriate variable name. You'll want to clean up the column names and make sure that any date columns are actually date datatypes.
+
+```{r}
+# Load the Maryland expenditures data table
+maryland_expenses <- read_csv("data/maryland_expenses.csv")|> clean_names()
+
+
+maryland_expenses <- maryland_expenses |> mutate(expenditure_date = mdy (expenditure_date))
+```
+
+## Answer questions
+
+**Q1.** You've been assigned to write about Maryland political committees' use of Facebook advertising. There's a category column in the data that has values for different kinds of spending. One of them is "Media". You'll need to complete the following steps:
+
+1.  Create a dataframe of Media expenses where the name of the payee is not NA.
+2.  Then, using `write_csv`, make a CSV file of your media expenses in your data folder. `write_csv()` is similar to `read_csv()` but you provide it with the dataframe you're writing and the file path.
+3.  Using OpenRefine, create a project using that CSV file, create a copy of the `payee_name` column called `payee_clean` and then standardize it, focusing on the payees that appear most often. Pay particular attention to variations of Facebook, bearing in mind that it changed its name in 2021: <https://about.fb.com/news/2021/10/facebook-company-is-now-meta/>), but also clean up variations of the most common payees.
+4.  When you are done standardizing `payee_clean`, export it as a new CSV file to your data folder, *giving it a different name* and read it back into RStudio as a new dataframe.
+5.  Using that `payee_clean` column in your new dataframe, calculate the total amount of Facebook spending by each committee and present the results showing the committee that spent the most first.
+
+**A1.**
+
+```{r}
+media_expenses <- maryland_expenses |> filter(expense_category == "Media")
+
+write_csv(media_expenses, "data/media_expenses.csv")
+
+media_expenses_clustered <- read.csv("data/media-expenses-csv.csv") |> clean_names()
+
+
+media_expenses_clustered |> filter(payee_name_clean == "Facebook") |>
+  group_by(committee_name) |>
+  summarise(total_amount = sum(amount)) |>
+  arrange(desc(total_amount))
+
+```
+
+**Q2.** Let's do some research on the top committees from question 1. Look up the top 10 spenders: if they are candidate committees, what offices were they running for? If they were not candidates, what issues do they seem to care about?
+
+**A2. Ashwani Jain ran for U.S. House of Representatives as a democratic candidate. Peter V.R. Franchot ran for Maryland Governor and is a Democrat, and Anderson-Walker was his running mate. Billy Boniface is the republican counsel president. Jon Barron ran for Governor against Wes Moore in 2022 as a Democrat. WFP is the working familys PAC. John B. King Jr. ran for governor and was the U.S. education secretary, Siri was his running mate. Amanda Fielder ran for county counsel and is a republican.**
+
+**Q3.** Given the list of top spenders in A1 and the primary results for governor (<https://elections.maryland.gov/elections/2022/primary_results/gen_results_2022_1.html>), who is missing from that Q1 list? Did those campaigns run Facebook ads? Who are the biggest recipients of media expenses by the Democratic primary winner for governor (HINT: that person has two committees, the second one with his running mate)?
+
+**A3. Wes Moore is missing- his spending may not appear in the Facebook dataset if it was categorized differently or if other committees handled some of the media spending. There is Moore for Maryland and Moore-Miller for maryland. SKDK had the most spent.**
+
+```{r}
+moore_media_spending <- media_expenses_clustered |>
+  filter(str_detect(committee_name, "Moore")) |>
+  filter(expense_category == "Media") |>
+  group_by(payee_name_clean) |>
+  summarise(total_spent = sum(amount)) |>
+  arrange(desc(total_spent))
+
+moore_media_spending
+```
+
+**Q4.** The media expense data you cleaned also has a standardized purpose column. Write code to generate a list of the committees with the total amount of spending on online advertising. How does this list compare to the one from Q1 about top Facebook spenders? Of the top 5 committees who spent the most on Facebook ads from Q1, are there any that appear to have spent *all* of their online advertising dollars on Facebook?
+
+**A4. None of the ones from q1 are here. This would mean that they only spent part of their budget on facebook.**
+
+```{r}
+online_spend_by_committee <- media_expenses_clustered |>
+  filter(str_detect(expense_purpose, regex("online", ignore_case = TRUE))) |>
+  group_by(committee_name)  |>
+  summarise(total_online_spend = sum(amount, na.rm = TRUE))  |>
+  arrange(desc(total_online_spend))
+
+online_spend_by_committee 
+```
+
+**Q5** Your editor asks you to summarize your findings about spending on Facebook by Maryland political candidates. How much do we know and what don't we know? What's the best story idea you've found here?
+
+**A5. This all shows that several Maryland political candidates and committees spent a lot of money on Facebook during the campaign period- it shows that Facebook is an important platform for campaign outreach. There are a lot of limitations though because the spending recorded as Facebook advertising or online adverstising in records- it won't show who was targeting by these ads or even if the ads worked or not. I'm not sure if I did the code right but if I did then an interesting story is that the committees who spent the most on facebook are not the same as the online advertising spending ones.**
