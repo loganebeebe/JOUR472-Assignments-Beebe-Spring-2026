@@ -1,0 +1,176 @@
+---
+title: "Reverse Engineering Project"
+author: "Adam and Logan"
+date: "March 11"
+output:
+  html_document:
+    theme: cerulean
+    highlight: pygments
+    toc: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this notebook, we are reverse engineering the story, "Comic Books Are Still Made By Men, For Men And About Men"
+
+Dataset Link: <https://github.com/fivethirtyeight/data/tree/master/comic-characters>
+
+Memo Link: <https://docs.google.com/document/d/1-sYZ3JRfR1ZPPwaQB4vU936U2GaLbn5vL9yyNO9Lxv0/edit?tab=t.0>
+
+## Load libraries
+
+Loading required libraries for this analysis.
+
+```{r echo=FALSE, message=FALSE}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+## Load and Cleaning Data
+
+In this section, describe the source of the data, write a basic data dictionary for data you are working with, and discuss any caveats or issues you discovered working with this data.
+
+```{r}
+dc_data <- read_csv("data/dc-wikia-data.csv") |> clean_names()
+marvel_data <- read_csv("data/marvel-wikia-data.csv") |> clean_names()
+```
+
+## Sentences to Engineer
+
+In this notebook, we are reverse engineering five sentences from the story.
+
+### Sentence 1
+
+-   **Sentence text**: "Women and men were almost exactly equally likely to have a secret identity in the Marvel universe (49.4 percent of males and 49.5 percent of females), while in the DC universe 51 percent of males had a secret identity and 45 percent of females did.”
+-   **Analysis summary**: Our analysis of DC characters did match the findings of the article at 45%. Our data did have an issue with 577 unclassified female characters, which could be relevant if the data is missing or not important if the characters do not have heroic/villainous identities. Marvel had a slightly different classification system for identities. We had a different result of 49.4% female secret identities when the five "known to authorities" characters were excluded but the results matched again when they were added in.
+
+```{r}
+# Put code to reverse engineer sentence here
+dc_data |> filter(str_detect(sex, "Female")) |> group_by(id, sex) |> summarise(count=n())
+# Display results of code below this codeblock
+marvel_data |> filter(str_detect(sex, "Female")) |> group_by(id, sex) |> summarise(count=n())
+```
+
+### Sentence 2
+
+-   **Sentence text**: "The same trend bears out when we look at characters with higher appearance counts. When we zero in on the 2,415 DC and 3,342 Marvel characters with gender data who appear at least 10 times — the set of characters that probably gives the most consistent view of what we see on the page — female characters make up only 30.9 percent of the DC universe and 30.6 percent of the Marvel universe."
+-   **Analysis summary**: The article's conclusion of 30.9% of DC characters with 10 appearances being female is close but inaccurate to our findings, including scenarios where rounding would be used. We found 738 female characters, representing a close but ultimately higher 31.04%. For Marvel, we had a similar result with a roughly close number but a higher one again. We found 30.84% of Marvel characters with 10 appearances were female, beating out the article's smaller 30.6% result. The results being so close suggests that an extra character could have been in the article's calculations, potentially by doing a process of over 10 instead of greater than or equal to 10.
+
+```{r}
+dc_apps_over_ten <- dc_data |>
+filter(appearances >= 10) |>
+filter(sex == "Male Characters" | sex == "Female Characters") |>
+group_by(sex) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+marvel_apps_over_ten <- marvel_data |>
+filter(appearances >= 10) |>
+filter(sex == "Male Characters" | sex == "Female Characters") |>
+group_by(sex) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+# Display results of code below this codeblock
+dc_apps_over_ten
+marvel_apps_over_ten
+```
+
+### Sentence 3
+
+-   **Sentence text**: "When we focus on only the most frequently appearing characters in each universe — the stars of the show — the data changes. Of characters with gender data and 100 or more appearances (294 DC characters and 414 Marvel characters), only 29.0 percent of DC’s are female, and a similar 31.1 percent of the Marvel crowd is."
+-   **Analysis summary**: We found the same conclusion as the article for DC female characters with at least 100 appearances. Even with rounding considerations, the 29.01% in our findings would go down to 29%. Marvel did not have the same outcome for this calculation. We had a difference of almost 0.2% at 31.29% instead of the article's 31.1%. This difference could be from extra inclusions in the article's dataset with the appearance counter as the likeliest source for the decimal change. There are likely few characters with exactly 100 appearances, matching the little tweaks that could alter a result by such a small amount.
+
+```{r}
+dc_apps_over_100 <- dc_data |>
+filter(appearances >= 100) |>
+filter(sex == "Male Characters" | sex == "Female Characters") |>
+group_by(sex) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+marvel_apps_over_100 <- marvel_data |>
+filter(appearances >= 100) |>
+filter(sex == "Male Characters" | sex == "Female Characters") |>
+group_by(sex) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+# Display results of code below this codeblock
+dc_apps_over_100
+marvel_apps_over_100
+```
+
+### Sentence 4
+
+-   **Sentence text**: “In both DC and Marvel, women were of neutral allegiance at a higher rate than men.”
+-   **Analysis summary**: We did not get anything close to the finding that women were at a higher rate of neutrality than men in DC or Marvel. Both universes had under 40% of women as neutral and over 60% of men as neutral. Looking at the dataset ourselves, we noticed key problems with how this information is tracked. For example, multiple members of the X-Men, which is one of the most famous hero teams in Marvel, had core members listed as neutral. Those characters were Wolverine and Cyclops. Our first thought is that it could be widespread inputting errors but there may be an issue with the system instead. Both characters have been villains or anti-heroes before, potentially suggesting that neutral characters in the dataset are including any characters that have done both heroic and evil acts.
+
+```{r}
+dc_neutral <- dc_data |>
+filter(align == "Neutral Characters") |>
+filter(sex == "Male Characters" | sex == "Female Characters") |>
+group_by(sex) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+marvel_neutral <- marvel_data |>
+filter(align == "Neutral Characters") |>
+filter(sex == "Male Characters" | sex == "Female Characters") |>
+group_by(sex) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+# Display results of code below this codeblock
+dc_neutral
+marvel_neutral
+
+```
+
+### Sentence 5
+
+-   **Sentence text**: “Women and men were almost exactly equally likely to have a secret identity in the Marvel universe (49.4 percent of males and 49.5 percent of females), while in the DC universe 51 percent of males had a secret identity and 45 percent of females did."
+-   **Analysis summary**: We did not find similar results for secret identities as the article. Our numbers consistently came in lower than the article's with 36.6% and 31.7% for men and women in DC respectively, For Marvel, we found 38.7% for male characters and 39.2% for female characters. The percentages are still roughly even with each other like the article found. We believe the difference comes from the part of the dataset that is missing an identity listing, representing over 20% in each gender and publisher filter. If that data had been assigned, the percents could have still been even but closer to the article's results.
+
+```{r}
+dc_male_secret <- dc_data |>
+filter(sex == "Male Characters") |>
+group_by(id) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+dc_female_secret <- dc_data |>
+filter(sex == "Female Characters") |>
+group_by(id) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+marvel_male_secret <- marvel_data |>
+filter(sex == "Male Characters") |>
+group_by(id) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+marvel_female_secret <- marvel_data |>
+filter(sex == "Female Characters") |>
+group_by(id) |>
+summarise(count = n()) |>
+mutate(percent = count / sum(count) * 100)
+
+# Display results of code below this codeblock
+dc_male_secret
+dc_female_secret
+marvel_male_secret
+marvel_female_secret
+
+```
+
+-30-
