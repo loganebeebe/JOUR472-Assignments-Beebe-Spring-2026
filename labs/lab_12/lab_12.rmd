@@ -32,9 +32,6 @@ library(rvest)
 **A1. The top word is "failing," i think the top ten words show financial misconduct and maybe an ethical violation.**
 
 ```{r}
-library(tidyverse)
-library(tidytext)
-
 
 data <- read_csv("data/md_attorney_sanctions.csv")
 
@@ -57,8 +54,6 @@ top_words
 **A2.** The most common trigram is "attorney trust account" and it means where lawyers keep client funds separate from their own money.
 
 ```{r}
-library(tidyverse)
-library(tidytext)
 
 trigrams <- data %>%
   unnest_tokens(trigram, text, token = "ngrams", n = 3)
