@@ -1,0 +1,54 @@
+---
+title: "Data Analysis Project"
+author: "Adam Lipman, Logan Beebe, Riley Bomgardner"
+date: "5/14/26"
+output:
+  html_document:
+    theme: cerulean
+    highlight: pygments
+    toc: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Data Link: <https://www.kaggle.com/datasets/andrewmvd/board-games?resource=download>
+
+## Load libraries
+
+```{r echo=FALSE, message=FALSE}
+library(tidyverse)
+library(tidytext)
+library(janitor)
+library(lubridate)
+```
+
+## Loading Data
+
+```{r}
+board_games_data <- read.csv2("data/bgg_dataset.csv") |> clean_names()
+```
+
+```{r}
+board_games_data
+```
+
+## Basic Analysis
+
+There are 20,343 rows and 14 columns in the dataset.
+
+We do not have any price data included in this dataset so we will need joins to other datasets to address that. We also need information about attention deficits and ages that play the most. The column for game mechanics in our data, called mechanics, has inconsistent formatting for separate features, using slashes, commas or spaces to divide them all. They are in the same row which makes it more challenging.
+
+Our dataset does not have any timeframe limitations but some older games like marbles have rough approximates that use negative values. Those values are not specified to be time since the present or if it is in a BCE format. The last year with data is 2022, removing any conclusions from the previous three years. The play_time is not the actual length needed to play the game but instead it is biased data from the game's creators. The reviews for the games do not have sources, making it unclear if they are from one source or combined across multiple, which could have different rating criteria.
+
+We plan to research the needed data categories and try to add that for our future deliverables.
+
+```{r}
+nrow(board_games_data)
+```
